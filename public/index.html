@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员日志查看入口</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --accent: #38bdf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+    }
+    h1 {
+      margin: 0 0 8px;
+    }
+    .card {
+      background: var(--panel);
+      width: min(1100px, 100%);
+      border-radius: 16px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #7dd3fc;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 18px;
+    }
+    label {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(120deg, #38bdf8, #6366f1);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    button:hover { box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35); }
+    button:active { transform: scale(0.99); }
+    .muted { color: var(--muted); }
+    .list {
+      margin-top: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      max-height: 260px;
+      overflow: auto;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: rgba(15, 23, 42, 0.95); }
+    tr:nth-child(odd) { background: rgba(255, 255, 255, 0.01); }
+    tr:hover { background: rgba(56, 189, 248, 0.05); }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.1);
+      color: #bae6fd;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .preview {
+      margin-top: 18px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px;
+      min-height: 200px;
+      white-space: pre-wrap;
+      font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+      overflow: auto;
+    }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .row h2 { margin: 0; }
+    .badge { color: #22d3ee; font-weight: 700; }
+    .small { font-size: 12px; color: var(--muted); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card" id="login-card">
+    <div class="tag">管理员入口 · 需要密码</div>
+    <h1>Ivan 项目日志查看器</h1>
+    <p class="muted">请输入管理员密码后访问 /var/ivanproject/logs 下的所有文件。</p>
+    <div class="grid">
+      <div>
+        <label for="password">管理员密码</label>
+        <input id="password" type="password" placeholder="请输入密码" autocomplete="current-password">
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button id="login-btn">进入控制台</button>
+      </div>
+    </div>
+    <p id="login-error" class="muted" style="color:#fca5a5; margin-top:8px;"></p>
+  </div>
+
+  <div class="card hidden" id="app">
+    <div class="row">
+      <div>
+        <div class="tag">管理员入口</div>
+        <h2>日志文件总览</h2>
+        <p class="muted">当前挂载目录：<span id="base-dir"></span></p>
+      </div>
+      <div class="small">密码校验成功 · 仅内部使用</div>
+    </div>
+
+    <div class="list">
+      <table>
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>类型</th>
+            <th>大小</th>
+            <th>更新时间</th>
+            <th>查看</th>
+          </tr>
+        </thead>
+        <tbody id="file-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="preview" id="preview">选择一个文件查看内容</div>
+  </div>
+
+  <script>
+    const PASSWORD = 'Zyf021206';
+    const loginCard = document.getElementById('login-card');
+    const appCard = document.getElementById('app');
+    const loginBtn = document.getElementById('login-btn');
+    const passwordInput = document.getElementById('password');
+    const loginError = document.getElementById('login-error');
+    const fileRows = document.getElementById('file-rows');
+    const preview = document.getElementById('preview');
+    const baseDirSpan = document.getElementById('base-dir');
+
+    function humanSize(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+    }
+
+    function formatTime(str) {
+      const date = new Date(str);
+      return date.toLocaleString();
+    }
+
+    function renderFiles(files) {
+      fileRows.innerHTML = '';
+      files.forEach(file => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${file.name}</td>
+          <td><span class="pill">${file.type}</span></td>
+          <td>${humanSize(file.size)}</td>
+          <td>${formatTime(file.mtime)}</td>
+          <td><button data-path="${file.name}">查看</button></td>
+        `;
+        tr.querySelector('button').addEventListener('click', () => loadFile(file.name));
+        fileRows.appendChild(tr);
+      });
+    }
+
+    async function loadFiles() {
+      preview.textContent = '载入文件列表中...';
+      try {
+        const res = await fetch('/api/files');
+        const data = await res.json();
+        baseDirSpan.textContent = data.base;
+        renderFiles(data.files);
+        preview.textContent = '选择一个文件查看内容';
+      } catch (error) {
+        preview.textContent = '无法载入文件列表，请检查服务器日志。';
+        console.error(error);
+      }
+    }
+
+    async function loadFile(name) {
+      preview.textContent = `正在读取 ${name}...`;
+      try {
+        const res = await fetch(`/api/file?path=${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (data.error) {
+          preview.textContent = data.error;
+          return;
+        }
+        preview.textContent = data.content || '[文件为空]';
+      } catch (error) {
+        preview.textContent = '读取文件时出错';
+        console.error(error);
+      }
+    }
+
+    function unlock() {
+      loginCard.classList.add('hidden');
+      appCard.classList.remove('hidden');
+      loadFiles();
+    }
+
+    function attemptLogin() {
+      const value = passwordInput.value.trim();
+      if (value === PASSWORD) {
+        loginError.textContent = '';
+        localStorage.setItem('ivanproject-auth', '1');
+        unlock();
+      } else {
+        loginError.textContent = '密码错误，请重试。';
+      }
+    }
+
+    loginBtn.addEventListener('click', attemptLogin);
+    passwordInput.addEventListener('keyup', (event) => {
+      if (event.key === 'Enter') attemptLogin();
+    });
+
+    if (localStorage.getItem('ivanproject-auth') === '1') {
+      unlock();
+    }
+  </script>
+</body>
+</html>

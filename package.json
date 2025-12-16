@@ -1,0 +1,10 @@
+{
+  "name": "ivanproject-commentchecker",
+  "version": "1.0.0",
+  "description": "Web viewer for Ivanproject logs with admin gate.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
